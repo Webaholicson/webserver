@@ -34,3 +34,6 @@
 # Eclipse files
 *.project
 *.cproject
+
+# Compiled source
+webserver
