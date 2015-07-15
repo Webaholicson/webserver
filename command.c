@@ -7,15 +7,15 @@
 
 int parse_command (int argc, char *argv[])
 {
-	if (strcasecmp(argv[1], "start")) {
-		return start_cmd(argc, argv);
+	if (strstr(argv[1], "start")) {
+		return start_command(argc, argv);
 	} else {
 		printf("Invalid command argument: %s \n", argv[1]);
 		exit(EXIT_FAILURE);
 	}
 }
 
-int start_cmd (int argc, char *argv[])
+int start_command (int argc, char *argv[])
 {
 	const char *hostname 	= "127.0.0.1";
 	uint16_t port 			= 4000;

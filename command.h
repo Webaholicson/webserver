@@ -3,6 +3,6 @@
 
 extern int parse_command (int argc, char *argv[]);
 
-extern int start_cmd (int argc, char *argv[]);
+extern int start_command (int argc, char *argv[]);
 
 #endif
