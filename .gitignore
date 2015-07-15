@@ -37,3 +37,6 @@
 
 # Compiled source
 webserver
+
+# Log files
+*.log
