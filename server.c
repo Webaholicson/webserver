@@ -40,6 +40,9 @@ int start (const char *hostname, uint16_t port)
 	  exit (EXIT_FAILURE);
 	}
 
+	printf("Server running on %s:%d \n", hostname, port);
+	printf("To stop the server press Ctrl+C \n");
+
 	instance = malloc(sizeof(struct WebServer));
 
 	instance->socket_name	= socket_name;
@@ -57,11 +60,6 @@ int stop (void)
 {
 	close(instance->socket);
 	free(instance);
-	return 0;
-}
-
-int restart (void)
-{
 	return 0;
 }
 
@@ -117,6 +115,7 @@ int handle_request(int fd)
 	} else if (nbytes == 0) {
 		return -1;
 	} else {
+		log_request (buffer);
 		return send_response(fd);
 	}
 }
@@ -145,7 +144,7 @@ int send_response(int fd)
 		strcat (response, body);
 	}
 
-	printf ("%s \n", response);
+	fclose(fp);
 
 	int nbytes;
 	nbytes = write (fd, response, strlen(response) + 1);
@@ -154,6 +153,38 @@ int send_response(int fd)
 		perror ("write");
 		exit (EXIT_FAILURE);
 	}
+
+	return 0;
+}
+
+int log_error(char *error)
+{
+	FILE *error_log;
+	error_log = fopen (ERROR_LOG, "a");
+
+	if (error_log == NULL) {
+		perror ("fopen");
+		exit (EXIT_FAILURE);
+	}
+
+	fprintf (error_log, "[%s %s]\n%s", __DATE__, __TIME__, error);
+	fclose (error_log);
+
+	return 0;
+}
+
+int log_request(char *request)
+{
+	FILE *access_log;
+	access_log = fopen (ACCESS_LOG, "a");
+
+	if (access_log == NULL) {
+		perror ("fopen");
+		exit (EXIT_FAILURE);
+	}
+
+	fprintf (access_log, "[%s %s]\n%s", __DATE__, __TIME__, request);
+	fclose (access_log);
 
 	return 0;
 }

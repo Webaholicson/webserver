@@ -15,10 +15,8 @@
 struct WebServer {
 	int num_requests;
 	int socket;
-	int access_log;
-	int error_log;
-	const char *hostname;
 	struct sockaddr_in socket_name;
+	const char *hostname;
 	uint16_t port;
 };
 
@@ -26,12 +24,12 @@ extern int start (const char *hostname, uint16_t port);
 
 extern int stop (void);
 
-extern int restart (void);
-
 extern int handle_requests (void);
 
 extern int handle_request (int fd);
 
 extern int send_response (int fd);
+
+extern int log_request(char *request);
 
 #endif
