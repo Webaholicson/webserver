@@ -2,7 +2,6 @@
 #include <stdlib.h>
 
 #include "defs.h"
-#include "server.h"
 #include "command.h"
 
 

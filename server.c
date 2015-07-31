@@ -5,10 +5,18 @@
 
 #include "server.h"
 
-struct WebServer *instance;
-
 int start (const char *hostname, uint16_t port)
 {
+	server_config 					= malloc (sizeof(struct Config));
+	server_config->num_of_sites		= 0;
+	instance 						= malloc (sizeof(struct WebServer));
+	instance->config				= server_config;
+	instance->hostname				= hostname;
+	instance->port					= port;
+	instance->num_requests 			= 0;
+
+	load_config_files();
+
 	int web_server_socket = socket (PF_INET, SOCK_STREAM, 0);
 
 	if (web_server_socket < 0) {
@@ -40,26 +48,23 @@ int start (const char *hostname, uint16_t port)
 	  exit (EXIT_FAILURE);
 	}
 
-	printf("Server running on %s:%d \n", hostname, port);
-	printf("To stop the server press Ctrl+C \n");
+	printf ("Server running on %s:%d \n", hostname, port);
+	printf ("To stop the server press Ctrl+C \n");
 
-	instance = malloc(sizeof(struct WebServer));
+	instance->socket_name		= socket_name;
+	instance->socket 			= web_server_socket;
 
-	instance->socket_name	= socket_name;
-	instance->hostname		= hostname;
-	instance->port			= port;
-	instance->socket 		= web_server_socket;
-	instance->num_requests 	= 0;
+	handle_requests ();
 
-	handle_requests();
-
-	return stop();
+	return stop ();
 }
 
 int stop (void)
 {
-	close(instance->socket);
-	free(instance);
+	close (instance->socket);
+	lua_close (instance->config->luastate);
+	free (instance->config);
+	free (instance);
 	return 0;
 }
 
@@ -68,8 +73,8 @@ int handle_requests (void)
 	int i;
 	socklen_t size;
 	fd_set pending_fd_set, active_fd_set;
-	FD_ZERO(&pending_fd_set);
-	FD_SET(instance->socket, &pending_fd_set);
+	FD_ZERO (&pending_fd_set);
+	FD_SET (instance->socket, &pending_fd_set);
 
 	active_fd_set = pending_fd_set;
 
@@ -83,8 +88,8 @@ int handle_requests (void)
 			if (FD_ISSET(i, &active_fd_set)) {
 				if (i == instance->socket) {
 					int new;
-					size = sizeof(instance->socket_name);
-					new = accept(instance->socket, (struct sockaddr *) &instance->socket_name, &size);
+					size = sizeof (instance->socket_name);
+					new = accept (instance->socket, (struct sockaddr *) &instance->socket_name, &size);
 					if (new < 0) {
 						perror ("accept");
 						exit (EXIT_FAILURE);
@@ -92,9 +97,9 @@ int handle_requests (void)
 
 					FD_SET (new, &active_fd_set);
 				} else {
-					handle_request(i);
-					close(i);
-					FD_CLR(i, &active_fd_set);
+					handle_request (i);
+					close (i);
+					FD_CLR (i, &active_fd_set);
 				}
 			}
 		}
@@ -116,11 +121,12 @@ int handle_request(int fd)
 		return -1;
 	} else {
 		log_request (buffer);
-		return send_response(fd);
+		struct Site *site = match_site (&buffer);
+		return send_response (fd, site);
 	}
 }
 
-int send_response(int fd)
+int send_response (int fd, struct Site *site)
 {
 	const char *headers = "HTTP/1.1 200 OK\n" \
 			"Content-Type: text/html;charset=utf-8\n" \
@@ -136,7 +142,6 @@ int send_response(int fd)
 	}
 
 	char body[1024];
-
 	char response[3072];
 	strcpy (response, headers);
 
@@ -144,7 +149,7 @@ int send_response(int fd)
 		strcat (response, body);
 	}
 
-	fclose(fp);
+	fclose (fp);
 
 	int nbytes;
 	nbytes = write (fd, response, strlen(response) + 1);

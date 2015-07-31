@@ -2,16 +2,15 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "server.h"
 #include "command.h"
 
 int parse_command (int argc, char *argv[])
 {
-	if (strstr(argv[1], "start")) {
-		return start_command(argc, argv);
+	if (strstr (argv[1], "start")) {
+		return start_command (argc, argv);
 	} else {
-		printf("Invalid command argument: %s \n", argv[1]);
-		exit(EXIT_FAILURE);
+		printf ("Invalid command argument: %s \n", argv[1]);
+		exit (EXIT_FAILURE);
 	}
 }
 
@@ -33,7 +32,7 @@ int start_command (int argc, char *argv[])
 
 	if (argc >= 6) {
 		if (strstr (argv[4], "-p")) {
-			port = (uint16_t) atoi(argv[5]);
+			port = (uint16_t) atoi (argv[5]);
 		} else if (strstr (argv[4], "-a")) {
 			hostname = argv[5];
 		} else {
