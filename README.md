@@ -1,7 +1,7 @@
 # Webserver
 Simple Web Server written in C
 
-## COmpile and Install
+## Compile and Install
 1. make
 2. make install
 
