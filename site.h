@@ -9,6 +9,7 @@
 #include "config.h"
 
 #define SITE_NUM_FIELDS 7
+#define CONFIG_FILE_SIZE 1024
 
 struct Site {
 	char *name;

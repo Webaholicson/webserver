@@ -9,7 +9,7 @@ char *site_table_keys[SITE_NUM_FIELDS] = { "name", "dir", "error_log", "access_l
 int setup_site (FILE *fp)
 {
 	char line[100];
-	char *content = malloc (1024);
+	char *content = malloc (CONFIG_FILE_SIZE);
 	strcpy (content, "");
 
 	while (fgets (line, 100, fp) != NULL) {
@@ -29,7 +29,7 @@ int setup_site (FILE *fp)
 
 	int i;
 	int table = lua_gettop (server_config->luastate);
-	struct Site *site = malloc (1024);
+	struct Site *site = malloc (CONFIG_FILE_SIZE);
 
 	for (i = 0; i < SITE_NUM_FIELDS; i++) {
 		lua_getfield (server_config->luastate, table, site_table_keys[i]);
