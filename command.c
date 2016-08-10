@@ -58,7 +58,7 @@ int parse_command (int argc, char *argv[])
 	}
 
 	if (run) {
-		signal (SIGTERM, (void *) close);
+		signal (SIGTERM, (void *) stop);
 		return start_command (filename);
 	}
 
@@ -89,9 +89,16 @@ int start_command (const char *filename)
 	exit (EXIT_SUCCESS);
 }
 
+/**
+ *	Handle stop signals sent with the -s option
+ */
 int stop_command ()
 {
+	if (is_running ()) {
+		stop (SIGTERM);
+	}
 
+	return 0;
 }
 
 /**
@@ -99,8 +106,10 @@ int stop_command ()
  */
 int handle_stop_signal ()
 {
-	if (is_running())
-		kill ((pid_t) atoi(line), SIGTERM);
+	int pid = is_running();
+
+	if (pid)
+		kill (pid, SIGTERM);
 
 	return 0;
 }
@@ -114,7 +123,6 @@ int is_running()
 {
 	FILE *fp;
 	char line[10];
-	int is_running;
 	fp = fopen (PID_FILE, "r");
 
 	if (fp == NULL) {
@@ -122,5 +130,5 @@ int is_running()
 		exit (EXIT_FAILURE);
 	}
 
-	return (fgets (line, 10, fp) != NULL);
+	return (fgets (line, 10, fp) != NULL) ? atoi(line) : 0;
 }

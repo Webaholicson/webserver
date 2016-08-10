@@ -68,11 +68,11 @@ int start (const char *filename)
 
 void stop (int signum)
 {
+	close (instance->socket);
 	free (instance->config);
 	free (instance);
 	update_pid_file (0);
 	printf ("Server has been shutdown. \n");
-	close (instance->socket);
 }
 
 int handle_requests (void)

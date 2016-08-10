@@ -40,3 +40,8 @@ webserver
 
 # Log files
 *.log
+
+#Libevent
+deps/libevent/build/include
+deps/libevent/build/bin
+deps/libevent/build/lib
