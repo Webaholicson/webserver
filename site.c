@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "site.h"
+#include "server.h"
 
 char *site_table_keys[SITE_NUM_FIELDS] = { "name", "dir", "error_log", "access_log", "email", "index", "type" };
 
@@ -22,36 +22,23 @@ int setup_site (FILE *fp)
 		return 0;
 	}
 
-	lua_getglobal (server_config->luastate, "wscl");
-	lua_pushstring (server_config->luastate, content);
-	lua_call (server_config->luastate, 1, 1);
 	free (content);
 
 	int i;
-	int table = lua_gettop (server_config->luastate);
 	struct Site *site = malloc (CONFIG_FILE_SIZE);
 
 	for (i = 0; i < SITE_NUM_FIELDS; i++) {
-		lua_getfield (server_config->luastate, table, site_table_keys[i]);
-		char *val = lua_tostring(server_config->luastate, lua_gettop(server_config->luastate));
+		const char *val = "name";
 		set_site_field (site, site_table_keys[i], val);
-		lua_pop (server_config->luastate, 1);
 	}
 
-	server_config->sites[server_config->num_of_sites] = site;
-	server_config->num_of_sites++;
-
-	lua_pop(server_config->luastate, 1);
-//	printf ("On stack: %d\n", lua_gettop (server_config->luastate));
-
-//	lua_Debug ar;
-//	lua_getinfo (server_config->luastate, ">Snu", &ar);
-//	printf ("%s \n", ar.source);
+	instance->config->sites[instance->config->num_of_sites] = site;
+	instance->config->num_of_sites++;
 
 	return 0;
 }
 
-int set_site_field (struct Site *site, char *key, char *val)
+int set_site_field (struct Site *site, const char *key, const char *val)
 {
 	if (strstr (key, "name")) {
 		site->name = val;
@@ -76,7 +63,7 @@ struct Site *match_site(char *request)
 	// TODO: Move request parsing code to request file
 	// TODO: Move response building to response file
 
-	struct Site *site;
+	struct Site *site = malloc (sizeof (struct Site));
 	return site;
 
 	if (site->name == NULL) {
@@ -93,14 +80,4 @@ struct Site *match_site(char *request)
 	http_parser_execute(parser, &settings, request, strlen (request));
 
 	return site; */
-}
-
-int header_field_cb(http_parser *_, const char *at, size_t len)
-{
-	return 0;
-}
-
-int header_value_cb(http_parser *_, const char *at, size_t len)
-{
-	return 0;
 }

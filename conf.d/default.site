@@ -1,0 +1,8 @@
+site {
+    name        = "localhost",
+    dir         = "www",
+    error_log   = "log/error.log",
+    access_log  = "log/access.log",
+    email       = "user@localhost",
+    index       = "index.html",
+}

@@ -3,8 +3,9 @@
 #include <string.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <regex.h>
 
-#include "config.h"
+#include "server.h"
 
 int load_config_files()
 {
@@ -16,13 +17,9 @@ int load_config_files()
 	}
 
 	struct dirent *config_file = malloc (sizeof (struct dirent));
-	server_config->luastate	= luaL_newstate();
-	luaL_openlibs (server_config->luastate);
 
 	char *filename = malloc (PATH_MAX);
 	char *cwd = get_current_dir_name();
-
-	load_wscl();
 
 	while ((config_file = readdir (config_dir)) != NULL) {
 		if (config_file->d_type == DT_REG) {
@@ -42,31 +39,12 @@ int load_config_files()
 	return 0;
 }
 
-int load_wscl()
-{
-	char *filename = malloc (PATH_MAX);
-	char *cwd = get_current_dir_name();
-
-	strcpy (filename, cwd);
-	strcat (filename, "/conf.d/");
-	strcat (filename, "wscl.lua");
-	int result = luaL_dofile (server_config->luastate, filename);
-
-	if (result > 1) {
-		printf ("Could not open file: %s %d \n", filename, result);
-		exit (EXIT_FAILURE);
-	}
-
-	free (filename);
-	return 0;
-}
-
-int parse_config_file (char *filename)
+int parse_config_file (const char *filename)
 {
 	FILE *fp = fopen (filename, "r");
 
 	if (fp == NULL) {
-		perror (fopen);
+		perror ("fopen");
 		exit (EXIT_FAILURE);
 	}
 
@@ -79,7 +57,35 @@ int parse_config_file (char *filename)
 	return 0;
 }
 
+int setup_default_config()
+{
+	instance->config->listen_port = 8080;
+	instance->config->host = "127.0.0.1";
+	return 0;
+}
+
 int setup_config (FILE *fp)
 {
+	char line[200];
+	char *pattern;
+	regex_t compiled;
+	// pattern = "/^[[:alnum:]_]+[[:space:]]+.*;$/";
+	pattern = "^([[:alpha:]_]+)[[:space:]]+(.*);";
+
+	if (regcomp(&compiled, pattern, REG_EXTENDED) != 0) {
+		printf ("Error compiling RegExp: %s \n", pattern);
+		regfree (&compiled);
+		exit (EXIT_FAILURE);
+	}
+
+	while (fgets (line, 200, fp) != NULL) {
+			regmatch_t matchptr;
+			if (regexec(&compiled, &line, 1, &matchptr, 0) == REG_NOMATCH) {
+				printf ("Error matching RegExp: %s %s \n", pattern, line);
+				regfree (&compiled);
+				exit (EXIT_FAILURE);
+			}
+	}
+
 	return 0;
 }

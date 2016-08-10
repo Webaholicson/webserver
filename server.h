@@ -6,17 +6,12 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <regex.h>
+#include <signal.h>
 
+#include "request.h"
 #include "config.h"
-#include "site.h"
 
 struct WebServer *instance;
-
-#define MAX_REQUEST_SIZE 	8192
-#define MAX_CONNECTIONS 	1
-#define ACCESS_LOG 			"log/access.log"
-#define ERROR_LOG 			"log/error.log"
-#define INDEX_FILE			"www/index.html"
 
 struct WebServer {
 	int num_requests;
@@ -25,11 +20,12 @@ struct WebServer {
 	const char *hostname;
 	uint16_t port;
 	struct Config *config;
+	http_parser *http_parser;
 };
 
-extern int start (const char *hostname, uint16_t port);
+extern int start (const char *filename);
 
-extern int stop (void);
+extern void stop (int signum);
 
 extern int handle_requests (void);
 
@@ -38,5 +34,7 @@ extern int handle_request (int fd);
 extern int send_response (int fd, struct Site *site);
 
 extern int log_request(char *request);
+
+extern int update_pid_file(int status);
 
 #endif

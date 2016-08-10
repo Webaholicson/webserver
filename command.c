@@ -1,49 +1,126 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "command.h"
 
 int parse_command (int argc, char *argv[])
 {
-	if (strstr (argv[1], "start")) {
-		return start_command (argc, argv);
-	} else {
-		printf ("Invalid command argument: %s \n", argv[1]);
-		exit (EXIT_FAILURE);
+	int run = 1;
+	int c;
+	char *filename = malloc (sizeof (DEFAULT_CONFIG_FILE));
+	strcpy (filename, DEFAULT_CONFIG_FILE);
+
+	while ((c = getopt (argc, argv, "hvtc:s:")) != 1) {
+		if (c == -1) {
+			break;
+		}
+
+		switch (c) {
+			case 'h':
+				display_help();
+				run = 0;
+				break;
+			case 'v':
+				printf("Webserver v0.1.0 By Antonio Mendes \n");
+				run = 0;
+				break;
+			case 't':
+				run = 0;
+				break;
+			case 'c':
+				if (optarg == NULL) {
+					exit (EXIT_FAILURE);
+				}
+
+				filename = realloc (filename, sizeof (optarg));
+				strcpy (filename, optarg);
+				break;
+			case 's':
+				if (optarg == NULL) {
+					exit (EXIT_FAILURE);
+				}
+
+				if (strstr (optarg, "stop")) {
+					handle_stop_signal();
+				}
+
+				if (strstr (optarg, "reload")) {
+					handle_reload_signal();
+				}
+
+				run = 0;
+				break;
+			default:
+				break;
+		}
 	}
+
+	if (run) {
+		signal (SIGTERM, (void *) close);
+		return start_command (filename);
+	}
+
+	exit (EXIT_SUCCESS);
 }
 
-int start_command (int argc, char *argv[])
+void display_help()
 {
-	const char *hostname 	= "127.0.0.1";
-	uint16_t port 			= 4000;
+	printf ("Usage: webserver [-hvt] [-s signal] [-c filename]\n\n"
+		"Options:\n"
+		"-h\t\t\t: this help\n"
+		"-v\t\t\t: show version and exit\n"
+		"-t\t\t\t: test configuration and exit\n"
+		"-s [signal]\t\t: send signal to a master process: stop, reload\n"
+		"-c [filename]\t\t: set configuration file\n"
+		"\n");
+}
 
-	if (argc >= 4) {
-		if (strstr (argv[2], "-p")) {
-			port = (uint16_t) atoi(argv[3]);
-		} else if (strstr (argv[2], "-a")) {
-			hostname = argv[3];
-		} else {
-			printf ("Invalid argument %s \n", argv[2]);
-			exit (EXIT_FAILURE);
-		}
-	}
-
-	if (argc >= 6) {
-		if (strstr (argv[4], "-p")) {
-			port = (uint16_t) atoi (argv[5]);
-		} else if (strstr (argv[4], "-a")) {
-			hostname = argv[5];
-		} else {
-			printf ("Invalid argument %s \n", argv[4]);
-			exit (EXIT_FAILURE);
-		}
-	}
-
-	if (start (hostname, port) < 0) {
+/**
+ *	Start the webserver
+ */
+int start_command (const char *filename)
+{
+	if (start (filename) < 0) {
 		exit (EXIT_FAILURE);
 	}
 
 	exit (EXIT_SUCCESS);
+}
+
+int stop_command ()
+{
+
+}
+
+/**
+ *	Handle stop signals sent with the -s option
+ */
+int handle_stop_signal ()
+{
+	if (is_running())
+		kill ((pid_t) atoi(line), SIGTERM);
+
+	return 0;
+}
+
+int handle_reload_signal()
+{
+	return 0;
+}
+
+int is_running()
+{
+	FILE *fp;
+	char line[10];
+	int is_running;
+	fp = fopen (PID_FILE, "r");
+
+	if (fp == NULL) {
+		perror ("fopen");
+		exit (EXIT_FAILURE);
+	}
+
+	return (fgets (line, 10, fp) != NULL);
 }

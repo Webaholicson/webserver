@@ -5,17 +5,22 @@
 
 #include "server.h"
 
-int start (const char *hostname, uint16_t port)
+int start (const char *filename)
 {
-	server_config 					= malloc (sizeof(struct Config));
+	struct Config *server_config	= malloc (sizeof (struct Config));
 	server_config->num_of_sites		= 0;
-	instance 						= malloc (sizeof(struct WebServer));
-	instance->config				= server_config;
-	instance->hostname				= hostname;
-	instance->port					= port;
-	instance->num_requests 			= 0;
+	instance 											= malloc (sizeof (struct WebServer));
+	instance->config							= server_config;
+	instance->http_parser					= malloc (sizeof (http_parser));
+	instance->num_requests 				= 0;
 
-	load_config_files();
+	parse_config_file (filename);
+	setup_default_config();
+
+	instance->hostname					= instance->config->host;
+	instance->port							= instance->config->listen_port;
+
+	// load_config_files();
 
 	int web_server_socket = socket (PF_INET, SOCK_STREAM, 0);
 
@@ -28,11 +33,11 @@ int start (const char *hostname, uint16_t port)
 	struct hostent *hostinfo;
 
 	socket_name.sin_family = AF_INET;
-	socket_name.sin_port = htons (port);
-	hostinfo = gethostbyname (hostname);
+	socket_name.sin_port = htons (instance->port);
+	hostinfo = gethostbyname (instance->hostname);
 
 	if (hostinfo == NULL) {
-		printf ("Unknown host %s.\n", hostname);
+		printf ("Unknown host %s.\n", instance->hostname);
 		exit (EXIT_FAILURE);
 	}
 
@@ -48,24 +53,26 @@ int start (const char *hostname, uint16_t port)
 	  exit (EXIT_FAILURE);
 	}
 
-	printf ("Server running on %s:%d \n", hostname, port);
+	printf ("Server running on %s:%d \n", instance->hostname, instance->port);
 	printf ("To stop the server press Ctrl+C \n");
 
-	instance->socket_name		= socket_name;
+	instance->socket_name	= socket_name;
 	instance->socket 			= web_server_socket;
+
+	update_pid_file (1);
 
 	handle_requests ();
 
-	return stop ();
+	return 0;
 }
 
-int stop (void)
+void stop (int signum)
 {
-	close (instance->socket);
-	lua_close (instance->config->luastate);
 	free (instance->config);
 	free (instance);
-	return 0;
+	update_pid_file (0);
+	printf ("Server has been shutdown. \n");
+	close (instance->socket);
 }
 
 int handle_requests (void)
@@ -110,7 +117,7 @@ int handle_requests (void)
 
 int handle_request(int fd)
 {
-	char buffer[MAX_REQUEST_SIZE];
+	char *buffer = malloc (sizeof (char) * MAX_REQUEST_SIZE);
 	int nbytes;
 
 	nbytes = read (fd, buffer, MAX_REQUEST_SIZE);
@@ -121,7 +128,7 @@ int handle_request(int fd)
 		return -1;
 	} else {
 		log_request (buffer);
-		struct Site *site = match_site (&buffer);
+		struct Site *site = match_site (buffer);
 		return send_response (fd, site);
 	}
 }
@@ -190,6 +197,25 @@ int log_request(char *request)
 
 	fprintf (access_log, "[%s %s]\n%s", __DATE__, __TIME__, request);
 	fclose (access_log);
+
+	return 0;
+}
+
+int update_pid_file(int status)
+{
+	FILE *pid_file;
+	pid_file = fopen (PID_FILE, "w");
+
+	if (pid_file == NULL) {
+		perror ("fopen");
+		exit (EXIT_FAILURE);
+	}
+
+	if (status == 1) {
+		fprintf (pid_file, "%d", getpid ());
+	}
+
+	fclose (pid_file);
 
 	return 0;
 }
