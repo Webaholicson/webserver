@@ -7,7 +7,7 @@
 
 int parse_command (int argc, char *argv[])
 {
-	int run = 1;
+	int run = 0;
 	int c;
 	char *filename = malloc (sizeof (DEFAULT_CONFIG_FILE));
 	strcpy (filename, DEFAULT_CONFIG_FILE);
@@ -20,14 +20,11 @@ int parse_command (int argc, char *argv[])
 		switch (c) {
 			case 'h':
 				display_help();
-				run = 0;
 				break;
 			case 'v':
 				printf("Webserver v0.1.0 By Antonio Mendes \n");
-				run = 0;
 				break;
 			case 't':
-				run = 0;
 				break;
 			case 'c':
 				if (optarg == NULL) {
@@ -36,8 +33,10 @@ int parse_command (int argc, char *argv[])
 
 				filename = realloc (filename, sizeof (optarg));
 				strcpy (filename, optarg);
+				run = 1;
 				break;
 			case 's':
+				printf ("%s\n", optarg);
 				if (optarg == NULL) {
 					exit (EXIT_FAILURE);
 				}
@@ -50,19 +49,15 @@ int parse_command (int argc, char *argv[])
 					handle_reload_signal();
 				}
 
-				run = 0;
 				break;
 			default:
+				signal (SIGTERM, (void *) stop);
+				start_command (filename);
 				break;
 		}
 	}
 
-	if (run) {
-		signal (SIGTERM, (void *) stop);
-		return start_command (filename);
-	}
-
-	exit (EXIT_SUCCESS);
+	return 0;
 }
 
 void display_help()

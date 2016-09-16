@@ -69,22 +69,36 @@ int setup_config (FILE *fp)
 	char line[200];
 	char *pattern;
 	regex_t compiled;
-	// pattern = "/^[[:alnum:]_]+[[:space:]]+.*;$/";
 	pattern = "^([[:alpha:]_]+)[[:space:]]+(.*);";
 
-	if (regcomp(&compiled, pattern, REG_EXTENDED) != 0) {
+	if (regcomp (&compiled, pattern, REG_EXTENDED) != 0) {
 		printf ("Error compiling RegExp: %s \n", pattern);
 		regfree (&compiled);
 		exit (EXIT_FAILURE);
 	}
 
 	while (fgets (line, 200, fp) != NULL) {
-			regmatch_t matchptr;
-			if (regexec(&compiled, &line, 1, &matchptr, 0) == REG_NOMATCH) {
+			regmatch_t matchptr[3];
+			if (regexec (&compiled, &line, 3, &matchptr, 0) == REG_NOMATCH) {
 				printf ("Error matching RegExp: %s %s \n", pattern, line);
 				regfree (&compiled);
 				exit (EXIT_FAILURE);
 			}
+
+			int key_len = matchptr[1].rm_eo - matchptr[1].rm_so + 1;
+			char key[key_len];
+
+			int val_len = matchptr[2].rm_eo - matchptr[2].rm_so + 1;
+			char val[val_len];
+
+			memcpy (key, &line[matchptr[1].rm_so], (matchptr[1].rm_eo - matchptr[1].rm_so));
+			memcpy (val, &line[matchptr[2].rm_so], (matchptr[2].rm_eo - matchptr[2].rm_so));
+
+			key[key_len-1] = '\0';
+			val[val_len-1] = '\0';
+
+			//instance->config->set(key, val)
+			break;
 	}
 
 	return 0;

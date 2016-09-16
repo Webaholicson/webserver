@@ -14,6 +14,8 @@
 struct WebServer *instance;
 
 struct WebServer {
+	sig_atomic_t is_running;
+	sig_atomic_t can_shutdown;
 	int num_requests;
 	int socket;
 	struct sockaddr_in socket_name;

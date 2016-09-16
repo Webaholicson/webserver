@@ -13,6 +13,8 @@ int start (const char *filename)
 	instance->config							= server_config;
 	instance->http_parser					= malloc (sizeof (http_parser));
 	instance->num_requests 				= 0;
+	instance->is_running 					= 1;
+	instance->can_shutdown				= 0;
 
 	parse_config_file (filename);
 	setup_default_config();
@@ -68,6 +70,7 @@ int start (const char *filename)
 
 void stop (int signum)
 {
+	instance->is_running = 0;
 	close (instance->socket);
 	free (instance->config);
 	free (instance);
@@ -91,6 +94,9 @@ int handle_requests (void)
 	}
 
 	while (1) {
+		if (instance->is_running == 0)
+			break;
+
 		for (i = 0; i < FD_SETSIZE; ++i) {
 			if (FD_ISSET(i, &active_fd_set)) {
 				if (i == instance->socket) {
@@ -112,6 +118,7 @@ int handle_requests (void)
 		}
 	}
 
+	instance->can_shutdown = 1;
 	return 0;
 }
 
@@ -203,6 +210,7 @@ int log_request(char *request)
 
 int update_pid_file(int status)
 {
+	unlink (PID_FILE);
 	FILE *pid_file;
 	pid_file = fopen (PID_FILE, "w");
 

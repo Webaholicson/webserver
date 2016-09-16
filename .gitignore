@@ -42,6 +42,7 @@ webserver
 *.log
 
 #Libevent
+deps/libevent
 deps/libevent/build/include
 deps/libevent/build/bin
 deps/libevent/build/lib
